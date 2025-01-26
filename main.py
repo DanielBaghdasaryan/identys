@@ -457,8 +457,8 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
     df_others = df.loc[df.index.difference(df_not_none.index)]
     df_others.drop(columns=condition_columns, inplace=True)
     
-    df_not_none.to_excel(out_dir + f'_{i}_class.xlsx', index=False)
-    df_others.to_excel(out_dir + f'_{i}_no_class.xlsx', index=False)
+    df_not_none.to_excel(out_dir + f'_{i}_class.xlsx')
+    df_others.to_excel(out_dir + f'_{i}_no_class.xlsx')
 
 if __name__ == '__main__':
     with open(sys.argv[1], 'r') as f:
