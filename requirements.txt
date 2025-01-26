@@ -1,0 +1,5 @@
+astropy==5.1
+astroquery==0.4.7
+numpy==1.24.3
+pandas==2.0.3
+tqdm==4.66.5
