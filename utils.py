@@ -50,7 +50,7 @@ def dms_to_degrees(dms_str):
     sign = -1 if degrees < 0 else 1
     return sign * (abs(degrees) + arcminutes / 60 + arcseconds / 3600)
 
-def get_adql_query(name, ra, dec, radius, prefix, start=10000, c=False):
+def get_adql_query(name, ra, dec, radius, prefix, start=10000, c=False, cols_to_keep=[]):
     """
     Retrieve data from the TAP service using an ADQL query.
 
@@ -62,10 +62,12 @@ def get_adql_query(name, ra, dec, radius, prefix, start=10000, c=False):
         prefix (str): Prefix for column renaming.
         start (int, optional): Initial query limit. Defaults to 10,000.
         c (bool, optional): Include additional filtering condition. Defaults to False.
+        cols_to_keep (List(str)): columns included in final output
 
     Returns:
         pd.DataFrame: Query results in a pandas DataFrame.
     """
+    print(f'\nRetrieve data from {prefix.upper()}...')
     n = start
     while True:
         adql_query = f"""
@@ -86,6 +88,13 @@ def get_adql_query(name, ra, dec, radius, prefix, start=10000, c=False):
         'RAJ2000': f'{prefix}_ra',
         'DEJ2000': f'{prefix}_de',
     })
+    result[f'{prefix}_ra'] = result[f'{prefix}_ra'].fillna(np.nan)
+    result[f'{prefix}_de'] = result[f'{prefix}_de'].fillna(np.nan)
+
+    print(f'Found rows: {len(result)}')
+
+    if len(result) > 0 and len(cols_to_keep) > 0:
+        result = result[cols_to_keep]
     return result
 
 def angular_distance(ra1, dec1, ra2, dec2):
@@ -127,11 +136,11 @@ def generate_index(row):
     base = 'UGPS' if 'UGPS' in row else '2MASS'
     if pd.notna(row[base]):
         return f"{base}_{row[base]}"
-    elif pd.notna(row['GLIMPSE']):
+    elif 'GLIMPSE' in row and pd.notna(row['GLIMPSE']):
         return f"GLIMPSE_{row['GLIMPSE']}"
-    elif pd.notna(row['MIPSGAL']):
+    elif 'MIPSGAL' in row and pd.notna(row['MIPSGAL']):
         return f"MIPSGAL_{row['MIPSGAL']}"
-    elif pd.notna(row['AllWISE']):
+    elif 'AllWISE' in row and pd.notna(row['AllWISE']):
         return f"AllWISE_{row['AllWISE']}"
     else:
         return "UNKNOWN"

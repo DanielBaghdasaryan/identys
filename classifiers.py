@@ -22,7 +22,7 @@ def classify_nir(row):
         return "NIR_Class_I"
     elif j_h_h_k < 0:
         return "NIR_Class_II"
-    return ""
+    return np.nan
 
 
 def classify_mir1(row):
@@ -44,7 +44,7 @@ def classify_mir1(row):
         return "MIR1_Class_I_II"
     elif 0 < diff_36_45 < 0.8 and 0.4 < diff_58_80 < 1.1:
         return "MIR1_Class_II"
-    return ""
+    return np.nan
 
 
 def classify_mir2(row):
@@ -64,7 +64,7 @@ def classify_mir2(row):
         return "MIR2_Class_I"
     elif diff_36_58 > 0.3 and diff_80_24 > 2:
         return "MIR2_Class_II"
-    return ""
+    return np.nan
 
 
 def classify_nmir(row):
@@ -90,7 +90,7 @@ def classify_nmir(row):
         if (diff_36_45 - 1) * 2.59 + k_36 * 0.92 >= 0:
             return "NMIR_Class_I"
         return "NMIR_Class_II"
-    return ""
+    return np.nan
 
 
 def classify_w(row):
@@ -127,4 +127,4 @@ def classify_w(row):
         return "W_Class_I"
     elif (diff_w1_w2 - sigma1 > 0.25) and (diff_w2_w3 - sigma2 > 1) and condition > 0:
         return "W_Class_II"
-    return ""
+    return np.nan
