@@ -19,8 +19,10 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
     radius = radius / 60
 
     # Retrieve data from **UKIDSS GPS**
+    base = '2MASS'
     if use_gps:
     #---------------------------------------------UKIDSS-------------------------------------------------
+        base = 'UKIDSS'
         print('\nRetrieve data from UKIDSS...')
         def adql_query(n):
             return f"""
@@ -50,8 +52,12 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
         
         print(f'Found rows: {len(df)}')
 
-        df = filter_ukidss(df)
-        df = convert_2mass_format(df)
+        if len(df) == 0:
+            base = '2MASS'
+            use_gps = False
+        else:
+            df = filter_ukidss(df)
+            df = convert_2mass_format(df)
         
 
     #---------------------------------------------2MASS-------------------------------------------------
@@ -165,7 +171,7 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
 
     # -------------------------------------------------MERGINGS--------------------------------------
     if len(df_GLIMPSE) > 0:
-        print('Merge GLIMPS and UKIDSS')
+        print(f'Merge GLIMPS and {base}')
         for col in list(df_GLIMPSE.columns):
             df.loc[:, col] = np.nan
 
@@ -197,7 +203,7 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
 
 
     if len(df_MIPSGAL) > 0:
-        print('Merge rest of MIPSGAL and UKIDSS')
+        print(f'Merge rest of MIPSGAL and {base}')
         for index, row in tqdm(df_MIPSGAL.iterrows(), total=len(df_MIPSGAL)):
             distances = angular_distance(row['mipsgal_ra'], row['mipsgal_de'], df['ra'], df['de'])
             if len(distances) > 0:
@@ -251,7 +257,7 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
     print('Specify W class')
     df_ALLWISE['W_Class'] = df_ALLWISE.apply(classify_w, axis=1)
 
-    print('Merge ALLWISE to UKIDSS')
+    print(f'Merge ALLWISE to {base}')
     for col in list(df_ALLWISE.columns):
         df.loc[:, col] = np.nan
 
