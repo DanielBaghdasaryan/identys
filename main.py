@@ -54,6 +54,7 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
 
         if len(df) == 0:
             base = '2MASS'
+            print('\n', 'No data from UKIDSS, get 2MASS as a base')
             use_gps = False
         else:
             df = filter_ukidss(df)
