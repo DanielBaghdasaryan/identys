@@ -89,8 +89,8 @@ The JSON input file should have the following structure:
 - `output_dir`: Specifies the folder for saving output files. If left empty, results will be saved in the `<current dir>/output` folder.
 - `use_gps`: Determines whether to use UKIDSS GPS data. If set to `false`, 2MASS data will be used as the base. If set `true`, UKIDSS data will be used as a base and 2MASS data will only update UKIDSS data. However, it will automatically get 2MASS as a base if the data from UKIDSS is empty.
 - `data`: A list of areas in the format `[ra, dec, radius in arcmin]`. The process will run for each area and generate files named:
-  - `<json name>_<area index>_class.xlsx`: Contains classified objects.
-  - `<json name>_<area index>_no_class.xlsx`: Contains non-classified objects.
+  - `<json name>_<area index>_class.csv`: Contains classified objects.
+  - `<json name>_<area index>_no_class.csv`: Contains non-classified objects.
 
 ## Output
 
