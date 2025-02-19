@@ -45,7 +45,11 @@ IdentYS is a Python-based tool for retrieving and analyzing astronomical data fr
 
 ### Prerequisites
 
-This project was tested on **Python 3.8**. Ensure you have the correct Python version installed.
+This project has been tested on **Python 3.11** and **Python 3.8**. If it does not run correctly with your Python version, you can create a new environment using Conda:
+```bash
+conda create --name identys python=3.11
+conda activate identys
+```
 
 ### Clone the Repository
 
