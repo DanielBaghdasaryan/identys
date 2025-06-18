@@ -319,7 +319,7 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
     print('Attach the rest of ALLWISE')
     for index, row in tqdm(df_ALLWISE.iterrows(), total=len(df_ALLWISE)):
         value = row['AllWISE']
-        if pd.notna(value) and value in df['AllWISE'].dropna().values:
+        if pd.notna(value) and value not in df['AllWISE'].dropna().values:
             df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
 
     cols_include = [
