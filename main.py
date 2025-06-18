@@ -6,8 +6,8 @@ import json
 from os.path import join, basename
 from os import getcwd, makedirs
 from classifiers import classify_nir, classify_mir1, classify_mir2, classify_nmir, classify_w
-from utils import angular_distance, convert_to_degrees, get_adql_query, tap, generate_index
-from helpers import convert_2mass_format, filter_glimpse, filter_ukidss, replace_from_2mass
+from utils import angular_distance, convert_to_degrees, get_adql_query, tap
+from helpers import convert_2mass_format, filter_glimpse, filter_ukidss, generate_index, get_idx_min, replace_from_2mass
 
   
 def analyse_area(ra, dec, radius, use_gps, out_dir, i):
@@ -184,13 +184,7 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
                 
                 select = df.iloc[closest]
                 if len(select) > 0:
-                    idx = None
-                    if pd.notna(select['K'].idxmin()):
-                        idx = select['K'].idxmin()
-                    elif pd.notna(select['H'].idxmin()):
-                        idx = select['H'].idxmin()              
-                    elif pd.notna(select['J'].idxmin()):
-                        idx = select['J'].idxmin()   
+                    idx = get_idx_min(select) 
                     
                     if idx is not None:
                         if pd.notna(df.loc[idx, 'GLIMPSE']):
@@ -213,13 +207,7 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
                 
                 select = df.iloc[closest]
                 if len(select) > 0:
-                    idx = None
-                    if pd.notna(select['K'].idxmin()):
-                        idx = select['K'].idxmin()
-                    elif pd.notna(select['H'].idxmin()):
-                        idx = select['H'].idxmin()              
-                    elif pd.notna(select['J'].idxmin()):
-                        idx = select['J'].idxmin()   
+                    idx = get_idx_min(select)   
                     
                     if idx is not None:
                         if df.loc[idx, 'MIPSGAL'] is not None:
@@ -272,13 +260,7 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
             
             select = df.iloc[closest]
             if len(select) > 0:
-                idx = None
-                if pd.notna(select['K'].idxmin()):
-                    idx = select['K'].idxmin()
-                elif pd.notna(select['H'].idxmin()):
-                    idx = select['H'].idxmin()              
-                elif pd.notna(select['J'].idxmin()):
-                    idx = select['J'].idxmin()   
+                idx = get_idx_min(select)   
                 
                 if idx is not None:
                     if pd.notna(df.loc[idx, 'AllWISE']):

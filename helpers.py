@@ -23,11 +23,22 @@ def filter_glimpse(df_GLIMPSE):
 
     return df_GLIMPSE
 
+
+def get_idx_min(select):
+    idx = None
+    if select['K'].notna().any():
+        idx = select['K'].idxmin()
+    elif select['H'].notna().any():
+        idx = select['H'].idxmin()
+    elif select['J'].notna().any():
+        idx = select['J'].idxmin()
+    return idx
+
 def replace_from_2mass(df, df_2MASS):
     print('Make replacements in UKIDSS from 2MASS...')
     _2mass_cols = ['_2MASS', '2J', '2H', '2K', '2e_Jmag', '2e_Hmag', '2e_Kmag']
     for k in _2mass_cols:
-        df.loc[:, k] = np.nan
+        df.loc[:, k] = pd.NA
         
     for index, row in tqdm(df.iterrows(), total=len(df)):
         if row['J'] < 13.25 or row['H'] < 12.75 or row['K'] < 12:
@@ -36,14 +47,12 @@ def replace_from_2mass(df, df_2MASS):
 
             if len(closest) > 0:
                 select = df_2MASS.iloc[closest]
-                if pd.notna(select['K'].idxmin()):
-                    select = select.loc[select['K'].idxmin()]
-                elif pd.notna(select['H'].idxmin()):
-                    select = select.loc[select['H'].idxmin()]
-                elif pd.notna(select['J'].idxmin()):
-                    select = select.loc[select['J'].idxmin()]
+                select = select.loc[get_idx_min(select)]
                 
-                if select['_2MASS'] in list(df['_2MASS']):
+
+                value = select['_2MASS']
+                should_replace = False
+                if pd.notna(value) and value in df['_2MASS'].dropna().values:
                     [[ind]] = np.where(df['_2MASS'] == select['_2MASS'])
                     clear_prev = False
 
@@ -62,20 +71,18 @@ def replace_from_2mass(df, df_2MASS):
                     
                     if clear_prev:
                         df.loc[df.index[ind], _2mass_cols] = None
-                        if row['J'] < 13.25 and pd.notna(select['J']):
-                            df.loc[index, ['_2MASS', '2J', '2e_Jmag']] = select[['_2MASS', 'J', 'e_Jmag']]
-                        if row['H'] < 12.75 and pd.notna(select['H']):
-                            df.loc[index, ['_2MASS', '2H', '2e_Hmag']] = select[['_2MASS', 'H', 'e_Hmag']]
-                        if row['K'] < 12 and pd.notna(select['K']):
-                            df.loc[index, ['_2MASS', '2K', '2e_Kmag']] = select[['_2MASS', 'K', 'e_Kmag']]
-                        
+                        should_replace = True                        
                 else:
+                    should_replace = True
+
+                if should_replace:
                     if row['J'] < 13.25 and pd.notna(select['J']):
                         df.loc[index, ['_2MASS', '2J', '2e_Jmag']] = select[['_2MASS', 'J', 'e_Jmag']]
                     if row['H'] < 12.75 and pd.notna(select['H']):
                         df.loc[index, ['_2MASS', '2H', '2e_Hmag']] = select[['_2MASS', 'H', 'e_Hmag']]
                     if row['K'] < 12 and pd.notna(select['K']):
                         df.loc[index, ['_2MASS', '2K', '2e_Kmag']] = select[['_2MASS', 'K', 'e_Kmag']]
+
     df['K'] = df.apply(lambda row: row['2K'] if pd.notna(row['2K']) else row['K'], axis=1)
     df['H'] = df.apply(lambda row: row['2H'] if pd.notna(row['2H']) else row['H'], axis=1)
     df['J'] = df.apply(lambda row: row['2J'] if pd.notna(row['2J']) else row['J'], axis=1)
@@ -132,4 +139,28 @@ def convert_2mass_format(df):
     del df['Jmag'], df['Hmag'], df['Kmag1']
 
     return df
+
+
+def generate_index(row):
+    """
+    Generate an index string based on the first non-null value in the order:
+    UGPS / 2MASS, GLIMPSE, MIPSGAL, AllWISE.
+
+    Args:
+        row (pd.Series): A row from the DataFrame.
+
+    Returns:
+        str: Generated index string.
+    """
+    base = 'UGPS' if 'UGPS' in row else '2MASS'
+    if pd.notna(row[base]):
+        return f"{base}_{row[base]}"
+    elif 'GLIMPSE' in row and pd.notna(row['GLIMPSE']):
+        return f"GLIMPSE_{row['GLIMPSE']}"
+    elif 'MIPSGAL' in row and pd.notna(row['MIPSGAL']):
+        return f"MIPSGAL_{row['MIPSGAL']}"
+    elif 'AllWISE' in row and pd.notna(row['AllWISE']):
+        return f"AllWISE_{row['AllWISE']}"
+    else:
+        return "UNKNOWN"
 

@@ -133,26 +133,3 @@ def angular_distance(ra1, dec1, ra2, dec2):
         coord2 = SkyCoord(ra=ra2 * u.deg, dec=dec2 * u.deg, frame='icrs')
         return coord1.separation(coord2).deg
     
-    
-def generate_index(row):
-    """
-    Generate an index string based on the first non-null value in the order:
-    UGPS / 2MASS, GLIMPSE, MIPSGAL, AllWISE.
-
-    Args:
-        row (pd.Series): A row from the DataFrame.
-
-    Returns:
-        str: Generated index string.
-    """
-    base = 'UGPS' if 'UGPS' in row else '2MASS'
-    if pd.notna(row[base]):
-        return f"{base}_{row[base]}"
-    elif 'GLIMPSE' in row and pd.notna(row['GLIMPSE']):
-        return f"GLIMPSE_{row['GLIMPSE']}"
-    elif 'MIPSGAL' in row and pd.notna(row['MIPSGAL']):
-        return f"MIPSGAL_{row['MIPSGAL']}"
-    elif 'AllWISE' in row and pd.notna(row['AllWISE']):
-        return f"AllWISE_{row['AllWISE']}"
-    else:
-        return "UNKNOWN"
