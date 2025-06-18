@@ -110,17 +110,17 @@ def classify_w(row):
     sigma1 = (
         (row['e_W1mag'] ** 2 + row['e_W2mag'] ** 2) ** 0.5
         if pd.notna(row['e_W1mag']) and pd.notna(row['e_W2mag'])
-        else pd.NA
+        else np.nan
     )
     sigma2 = (
         (row['e_W2mag'] ** 2 + row['e_W3mag'] ** 2) ** 0.5
         if pd.notna(row['e_W2mag']) and pd.notna(row['e_W3mag'])
-        else pd.NA
+        else np.nan
     )
     condition = (
         row['W1mag'] - row['W3mag'] + 1.7 * (row['W3mag'] - row['W4mag']) - 4.3
         if pd.notna(row['W1mag']) and pd.notna(row['W3mag']) and pd.notna(row['W4mag'])
-        else pd.NA
+        else np.nan
     )
 
     if diff_w1_w2 > 1 and diff_w2_w3 > 2 and diff_w2_w4 > 4:
