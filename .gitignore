@@ -1,0 +1,10 @@
+# Jupyter notebooks
+*.ipynb
+
+# CSV and Excel files
+*.csv
+*.xlsx
+
+# Output folder
+output/
+__pycache__/
