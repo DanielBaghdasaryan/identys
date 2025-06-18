@@ -120,7 +120,6 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
 
 
     # ------------------------------------------GLIMPSE-----------------------------------------
-    
     df_GLIMPSE = get_adql_query(
         'II/293/glimpse', ra, dec, radius, 'glimpse', c=True,
         cols_to_keep=[
@@ -138,7 +137,7 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
         print('Specify MIR1 and NMIR classes')
         df_GLIMPSE.loc[:, 'MIR1_Class'] = df_GLIMPSE.apply(classify_mir1, axis=1)
 
-        # ------------------------------------------MIPSGAL-----------------------------------------
+    # ------------------------------------------MIPSGAL-----------------------------------------
     df_MIPSGAL = get_adql_query(
         'J/AJ/149/64/catalog', ra, dec, radius, 'mipsgal',
         cols_to_keep=['MIPSGAL', 'mipsgal_ra', 'mipsgal_de', '__24_', 'e__24_' ]
@@ -277,25 +276,21 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
     if len(df_GLIMPSE) > 0:
         for index, row in tqdm(df_ALLWISE.iterrows(), total=len(df_ALLWISE)):
             value = row['AllWISE']
-            if pd.notna(value) and value in df['AllWISE'].dropna().values:
-                continue
-            distances = angular_distance(row['allwise_ra'], row['allwise_de'], df['glimpse_ra'], df['glimpse_de'])
-            if len(distances) > 0:
-                [closest] = np.where((distances < 3 / 3600) & (distances == distances.min()))
-                if len(closest) > 0:
-                    if not df.iloc[closest[0]]['AllWISE']:
+            if not (pd.notna(value) and value in df['AllWISE'].dropna().values):
+                distances = angular_distance(row['allwise_ra'], row['allwise_de'], df['glimpse_ra'], df['glimpse_de'])
+                if len(distances) > 0:
+                    [closest] = np.where((distances < 3 / 3600) & (distances == distances.min()))
+                    if len(closest) > 0 and not df.iloc[closest[0]]['AllWISE']:
                         df.iloc[closest[0], list(df_ALLWISE.columns)] = row[list(df_ALLWISE.columns)]
 
     if len(df_MIPSGAL) > 0:
         for index, row in tqdm(df_ALLWISE.iterrows(), total=len(df_ALLWISE)):
             value = row['AllWISE']
-            if pd.notna(value) and value in df['AllWISE'].dropna().values:
-                continue
-            distances = angular_distance(row['allwise_ra'], row['allwise_de'], df['mipsgal_ra'], df['mipsgal_de'])
-            if len(distances) > 0:
-                [closest] = np.where((distances < 3 / 3600) & (distances == distances.min()))
-                if len(closest) > 0:
-                    if not df.iloc[closest[0]]['AllWISE']:
+            if not (pd.notna(value) and value in df['AllWISE'].dropna().values):
+                distances = angular_distance(row['allwise_ra'], row['allwise_de'], df['mipsgal_ra'], df['mipsgal_de'])
+                if len(distances) > 0:
+                    [closest] = np.where((distances < 3 / 3600) & (distances == distances.min()))
+                    if len(closest) > 0 and not df.iloc[closest[0]]['AllWISE']:
                         df.iloc[closest[0], list(df_ALLWISE.columns)] = row[list(df_ALLWISE.columns)]
 
     print('Attach the rest of ALLWISE')
