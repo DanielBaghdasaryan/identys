@@ -22,7 +22,7 @@ def classify_nir(row):
         return "NIR_Class_I"
     elif j_h_h_k < 0:
         return "NIR_Class_II"
-    return np.nan
+    return pd.NA
 
 
 def classify_mir1(row):
@@ -44,7 +44,7 @@ def classify_mir1(row):
         return "MIR1_Class_I_II"
     elif 0 < diff_36_45 < 0.8 and 0.4 < diff_58_80 < 1.1:
         return "MIR1_Class_II"
-    return np.nan
+    return pd.NA
 
 
 def classify_mir2(row):
@@ -64,7 +64,7 @@ def classify_mir2(row):
         return "MIR2_Class_I"
     elif diff_36_58 > 0.3 and diff_80_24 > 2:
         return "MIR2_Class_II"
-    return np.nan
+    return pd.NA
 
 
 def classify_nmir(row):
@@ -90,7 +90,7 @@ def classify_nmir(row):
         if (diff_36_45 - 1) * 2.59 + k_36 * 0.92 >= 0:
             return "NMIR_Class_I"
         return "NMIR_Class_II"
-    return np.nan
+    return pd.NA
 
 
 def classify_w(row):
@@ -110,21 +110,21 @@ def classify_w(row):
     sigma1 = (
         (row['e_W1mag'] ** 2 + row['e_W2mag'] ** 2) ** 0.5
         if pd.notna(row['e_W1mag']) and pd.notna(row['e_W2mag'])
-        else np.nan
+        else pd.NA
     )
     sigma2 = (
         (row['e_W2mag'] ** 2 + row['e_W3mag'] ** 2) ** 0.5
         if pd.notna(row['e_W2mag']) and pd.notna(row['e_W3mag'])
-        else np.nan
+        else pd.NA
     )
     condition = (
         row['W1mag'] - row['W3mag'] + 1.7 * (row['W3mag'] - row['W4mag']) - 4.3
         if pd.notna(row['W1mag']) and pd.notna(row['W3mag']) and pd.notna(row['W4mag'])
-        else np.nan
+        else pd.NA
     )
 
     if diff_w1_w2 > 1 and diff_w2_w3 > 2 and diff_w2_w4 > 4:
         return "W_Class_I"
     elif (diff_w1_w2 - sigma1 > 0.25) and (diff_w2_w3 - sigma2 > 1) and condition > 0:
         return "W_Class_II"
-    return np.nan
+    return pd.NA

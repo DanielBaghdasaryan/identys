@@ -87,9 +87,9 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
     df_2MASS = result.to_pandas()
     print(f'Found rows: {len(df_2MASS)}')
 
-    df_2MASS.loc[(df_2MASS['Jmag'] > 16.5) | df_2MASS['e_Jmag'].isna(), ['Jmag', 'e_Jmag']] = np.nan
-    df_2MASS.loc[(df_2MASS['Hmag'] > 15.8) | df_2MASS['e_Hmag'].isna(), ['Hmag', 'e_Hmag']] = np.nan
-    df_2MASS.loc[(df_2MASS['Kmag'] > 15.0) | df_2MASS['e_Kmag'].isna(), ['Kmag', 'e_Kmag']] = np.nan
+    df_2MASS.loc[(df_2MASS['Jmag'] > 16.5) | df_2MASS['e_Jmag'].isna(), ['Jmag', 'e_Jmag']] = pd.NA
+    df_2MASS.loc[(df_2MASS['Hmag'] > 15.8) | df_2MASS['e_Hmag'].isna(), ['Hmag', 'e_Hmag']] = pd.NA
+    df_2MASS.loc[(df_2MASS['Kmag'] > 15.0) | df_2MASS['e_Kmag'].isna(), ['Kmag', 'e_Kmag']] = pd.NA
 
     df_2MASS.rename(columns={
             'Jmag': 'J',
@@ -147,7 +147,7 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
     if len(df_GLIMPSE) > 0 and len(df_MIPSGAL) > 0:
         print('Merge MIPSGAL to GLIMPS')
         for col in list(df_MIPSGAL.columns):
-            df_GLIMPSE.loc[:, col] = np.nan
+            df_GLIMPSE.loc[:, col] = pd.NA
 
         for index, row in tqdm(df_GLIMPSE.iterrows(), total=len(df_GLIMPSE)):
             distances = angular_distance(row['glimpse_ra'], row['glimpse_de'], df_MIPSGAL['mipsgal_ra'], df_MIPSGAL['mipsgal_de'])
@@ -155,7 +155,8 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
                 closest = np.where((distances < 3 / 3600) & (distances == distances.min()))
                 select = df_MIPSGAL.iloc[closest]
                 if len(select) > 0:
-                    if select.iloc[0]['MIPSGAL'] not in list(df_GLIMPSE['MIPSGAL']):
+                    value = select.iloc[0]['MIPSGAL']
+                    if pd.notna(value) and value not in df_GLIMPSE['MIPSGAL'].dropna().values:
                         df_GLIMPSE.loc[index, list(df_MIPSGAL.columns)] = select[list(df_MIPSGAL.columns)].iloc[0]
                     else:
                         [[ind]] = np.where(df_GLIMPSE['MIPSGAL'] == select.iloc[0]['MIPSGAL'])
@@ -163,7 +164,7 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
                         dist_prev = angular_distance(prev['glimpse_ra'], prev['glimpse_de'], prev['mipsgal_ra'], prev['mipsgal_de'])
                         dist_curr = distances.min()
                         if dist_prev > dist_curr:
-                            df_GLIMPSE.loc[df_GLIMPSE.index[ind], list(df_MIPSGAL.columns)] = np.nan
+                            df_GLIMPSE.loc[df_GLIMPSE.index[ind], list(df_MIPSGAL.columns)] = pd.NA
                             df_GLIMPSE.loc[index, list(df_MIPSGAL.columns)] = select[list(df_MIPSGAL.columns)].iloc[0]
 
         print('Remove AGB contaminants')
@@ -174,7 +175,7 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
     if len(df_GLIMPSE) > 0:
         print(f'Merge GLIMPS and {base}')
         for col in list(df_GLIMPSE.columns):
-            df.loc[:, col] = np.nan
+            df.loc[:, col] = pd.NA
 
         for index, row in tqdm(df_GLIMPSE.iterrows(), total=len(df_GLIMPSE)):
             distances = angular_distance(row['glimpse_ra'], row['glimpse_de'], df['ra'], df['de'])
@@ -237,10 +238,12 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
 
     print('Concat the rest from GLIMPSE and MIPSGAL')
     for index, row in tqdm(df_GLIMPSE.iterrows(), total=len(df_GLIMPSE)):
-        if row['GLIMPSE'] not in list(df['GLIMPSE']):
+        value = row['GLIMPSE']
+        if pd.notna(value) and value not in df['GLIMPSE'].dropna().values:
             df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
     for index, row in tqdm(df_MIPSGAL.iterrows(), total=len(df_MIPSGAL)):
-        if row['MIPSGAL'] not in list(df['MIPSGAL']):
+        value = row['MIPSGAL']
+        if pd.notna(value) and value not in df['MIPSGAL'].dropna().values:
             df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
 
 
@@ -260,7 +263,7 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
 
     print(f'Merge ALLWISE to {base}')
     for col in list(df_ALLWISE.columns):
-        df.loc[:, col] = np.nan
+        df.loc[:, col] = pd.NA
 
     for index, row in tqdm(df_ALLWISE.iterrows(), total=len(df_ALLWISE)):
         distances = angular_distance(row['allwise_ra'], row['allwise_de'], df['ra'], df['de'])
@@ -291,7 +294,8 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
 
     if len(df_GLIMPSE) > 0:
         for index, row in tqdm(df_ALLWISE.iterrows(), total=len(df_ALLWISE)):
-            if row['AllWISE'] in list(df['AllWISE']):
+            value = row['AllWISE']
+            if pd.notna(value) and value in df['AllWISE'].dropna().values:
                 continue
             distances = angular_distance(row['allwise_ra'], row['allwise_de'], df['glimpse_ra'], df['glimpse_de'])
             if len(distances) > 0:
@@ -302,7 +306,8 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
 
     if len(df_MIPSGAL) > 0:
         for index, row in tqdm(df_ALLWISE.iterrows(), total=len(df_ALLWISE)):
-            if row['AllWISE'] in list(df['AllWISE']):
+            value = row['AllWISE']
+            if pd.notna(value) and value in df['AllWISE'].dropna().values:
                 continue
             distances = angular_distance(row['allwise_ra'], row['allwise_de'], df['mipsgal_ra'], df['mipsgal_de'])
             if len(distances) > 0:
@@ -313,7 +318,8 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
 
     print('Attach the rest of ALLWISE')
     for index, row in tqdm(df_ALLWISE.iterrows(), total=len(df_ALLWISE)):
-        if row['AllWISE'] not in list(df['AllWISE']):
+        value = row['AllWISE']
+        if pd.notna(value) and value in df['AllWISE'].dropna().values:
             df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
 
     cols_include = [

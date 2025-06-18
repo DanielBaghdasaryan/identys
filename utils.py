@@ -104,24 +104,36 @@ def angular_distance(ra1, dec1, ra2, dec2):
     Args:
         ra1 (float): RA of the first coordinate in degrees.
         dec1 (float): Dec of the first coordinate in degrees.
-        ra2 (float or list): RA of the second coordinate(s) in degrees.
-        dec2 (float or list): Dec of the second coordinate(s) in degrees.
+        ra2 (float or array-like): RA of the second coordinate(s) in degrees.
+        dec2 (float or array-like): Dec of the second coordinate(s) in degrees.
 
     Returns:
-        float or np.ndarray: Angular separation in degrees.
+        float or np.ndarray: Angular separation(s) in degrees, or np.nan if input is invalid.
     """
-    if isinstance(ra2, Iterable):
+    # Check for missing scalar inputs
+    if pd.isna(ra1) or pd.isna(dec1):
+        return np.nan if not isinstance(ra2, Iterable) else np.full(len(ra2), np.nan)
+
+    if isinstance(ra2, Iterable) and not isinstance(ra2, str):
         ra2 = np.array(ra2)
         dec2 = np.array(dec2)
+        
+        mask = ~(pd.isna(ra2) | pd.isna(dec2))
+        result = np.full(ra2.shape, np.nan)
 
-    coord1 = SkyCoord(ra=ra1 * u.deg, dec=dec1 * u.deg, frame='icrs')
-    coord2 = SkyCoord(ra=ra2 * u.deg, dec=dec2 * u.deg, frame='icrs')
+        if np.any(mask):
+            coord1 = SkyCoord(ra=ra1 * u.deg, dec=dec1 * u.deg, frame='icrs')
+            coord2 = SkyCoord(ra=ra2[mask] * u.deg, dec=dec2[mask] * u.deg, frame='icrs')
+            result[mask] = coord1.separation(coord2).deg
+        return result
+    else:
+        if pd.isna(ra2) or pd.isna(dec2):
+            return np.nan
+        coord1 = SkyCoord(ra=ra1 * u.deg, dec=dec1 * u.deg, frame='icrs')
+        coord2 = SkyCoord(ra=ra2 * u.deg, dec=dec2 * u.deg, frame='icrs')
+        return coord1.separation(coord2).deg
     
-    # Calculate the separations
-    separations = coord1.separation(coord2)
     
-    return separations.deg
-
 def generate_index(row):
     """
     Generate an index string based on the first non-null value in the order:
