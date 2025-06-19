@@ -34,14 +34,20 @@ def get_idx_min(select):
         idx = select['J'].idxmin()
     return idx
 
-def replace_from_2mass(df, df_2MASS):
+def replace_from_2mass(df, df_2MASS, base):
     print('Make replacements in UKIDSS from 2MASS...')
+
+    j_thr, h_thr, k_thr = {
+        'UGPS': [13.25, 12.75, 12],
+        'VVV': [10.5, 10.0, 9.5],
+    }[base]
+
     _2mass_cols = ['_2MASS', '2J', '2H', '2K', '2e_Jmag', '2e_Hmag', '2e_Kmag']
     for k in _2mass_cols:
         df.loc[:, k] = pd.NA
         
     for index, row in tqdm(df.iterrows(), total=len(df)):
-        if row['J'] < 13.25 or row['H'] < 12.75 or row['K'] < 12:
+        if row['J'] < j_thr or row['H'] < h_thr or row['K'] < k_thr:
             distances = angular_distance(row['ra'], row['de'], df_2MASS['ra'], df_2MASS['de'])
             [closest] = np.where((distances < 1 / 3600) & (distances == distances.min()))
 
@@ -76,11 +82,11 @@ def replace_from_2mass(df, df_2MASS):
                     should_replace = True
 
                 if should_replace:
-                    if row['J'] < 13.25 and pd.notna(select['J']):
+                    if row['J'] < j_thr and pd.notna(select['J']):
                         df.loc[index, ['_2MASS', '2J', '2e_Jmag']] = select[['_2MASS', 'J', 'e_Jmag']]
-                    if row['H'] < 12.75 and pd.notna(select['H']):
+                    if row['H'] < h_thr and pd.notna(select['H']):
                         df.loc[index, ['_2MASS', '2H', '2e_Hmag']] = select[['_2MASS', 'H', 'e_Hmag']]
-                    if row['K'] < 12 and pd.notna(select['K']):
+                    if row['K'] < k_thr and pd.notna(select['K']):
                         df.loc[index, ['_2MASS', '2K', '2e_Kmag']] = select[['_2MASS', 'K', 'e_Kmag']]
 
     df['K'] = df.apply(lambda row: row['2K'] if pd.notna(row['2K']) else row['K'], axis=1)
@@ -100,13 +106,12 @@ def filter_ukidss(df):
         | df['e_Kmag1'].isna(), 
         ['Kmag1', 'e_Kmag1']
     ] = np.nan
-
+    
     df.loc[(
         (df['Jmag'] > 19.77) 
         | df['Jmag'].isna() 
         | df['e_Jmag'].isna() 
         | df['Kmag1'].isna() 
-        | df['e_Kmag1'].isna()
     ),
         ['Jmag', 'e_Jmag']
     ] = np.nan
@@ -116,29 +121,101 @@ def filter_ukidss(df):
         | df['Hmag'].isna() 
         | df['e_Hmag'].isna()
         | df['Kmag1'].isna() 
-        | df['e_Kmag1'].isna()
         | df['Jmag'].isna() 
-        | df['e_Jmag'].isna() 
     ), 
         ['Hmag', 'e_Hmag']
     ] = np.nan
 
     return df
 
-def convert_2mass_format(df):
-    print('Convert to 2MASS format')
-    df['J'] = 1.073 * (df['Jmag'] - df['Kmag1']) + df['Kmag1'] - 0.01
-    df['H'] = 1.062*(df['Hmag'] - df['Kmag1']) + df['Kmag1'] + 0.004 * (df['Jmag'] - df['Kmag1']) + 0.019
-    df['K'] = df['Kmag1'] + 0.002
-    df.loc[~df['Jmag'].isna(), 'K'] = df['K'] + 0.004 * (df['Jmag'] - df['Kmag1'])
-    df.rename(columns={
-        'e_Kmag': 'e_Kmag1',
-        'RAICRS': 'ra',
-        'DEICRS': 'de',
-    }, inplace=True)
-    del df['Jmag'], df['Hmag'], df['Kmag1']
+def filter_vvv(df):
+    df.replace([None, ''], np.nan, inplace=True)
+    df.loc[(
+        (df['Ksmag3'] > 18.0) 
+        | df['Ksmag3'].isna() 
+        | df['e_Ksmag3'].isna()
+        | df['Hmag3'].isna() 
+        | df['e_Hmag3'].isna()
+    ),
+        ['Ksmag3', 'e_Ksmag3']
+    ] = np.nan
+
+    df.loc[(
+        (df['Jmag3'] > 19.5) 
+        | df['Jmag3'].isna() 
+        | df['e_Jmag3'].isna() 
+        | df['Hmag3'].isna() 
+        | df['e_Hmag3'].isna()
+    ),
+        ['Jmag3', 'e_Jmag3']
+    ] = np.nan
+
+    df.loc[(
+        (df['Hmag3'] > 19.00) 
+        | df['Hmag3'].isna() 
+        | df['e_Hmag3'].isna()
+        | df['Ksmag3'].isna() 
+        | df['e_Ksmag3'].isna()
+    ), 
+        ['Hmag3', 'e_Hmag3']
+    ] = np.nan
+
+
+
+    # TODO: Jperrbits
 
     return df
+
+def convert_2mass_format(df, base):
+    print('Convert to 2MASS format')
+    if base == 'UGPS':
+        df['J'] = 1.073 * (df['Jmag'] - df['Kmag1']) + df['Kmag1'] - 0.01
+        df['H'] = 1.062 * (df['Hmag'] - df['Kmag1']) + df['Kmag1'] + 0.004 * (df['Jmag'] - df['Kmag1']) + 0.019
+        df['K'] = df['Kmag1'] + 0.002
+        df.loc[~df['Jmag'].isna(), 'K'] = df['K'] + 0.004 * (df['Jmag'] - df['Kmag1'])
+        df.rename(columns={
+            'RAICRS': 'ra',
+            'DEICRS': 'de',
+        }, inplace=True)
+        del df['Jmag'], df['Hmag'], df['Kmag1']
+
+    elif base == 'VVV':
+        df['J'] = df['Jmag3'] + 0.07 * (df['Jmag3'] - df['Hmag3'])
+        df['H'] = df['Hmag3'] + 0.01 * (df['Hmag3'] - df['Ksmag3'])
+        df['K'] = df['Ksmag3'] + 0.01 * (df['Hmag3'] - df['Ksmag3'])
+        df.rename(columns={
+            'RAJ2000': 'ra',
+            'DEJ2000': 'de',
+        }, inplace=True)
+        del df['Jmag3'], df['Hmag3'], df['Ksmag3']
+    return df
+
+def ugps_adql_query(n, ra, dec, radius):
+    return f"""
+        SELECT TOP {n} UGPS, RAICRS, DEICRS, Jmag, e_Jmag, Hmag, e_Hmag, Kmag1, e_Kmag1
+        FROM "II/316/gps6"
+        WHERE 1=CONTAINS(
+            POINT('ICRS', RAICRS, DEICRS),
+            CIRCLE('ICRS', {ra}, {dec}, {radius})
+        )
+        AND (e_Jmag IS NOT NULL OR e_Hmag IS NOT NULL OR e_Kmag1 IS NOT NULL)
+        AND (Jmag <= 19.77 OR Hmag <= 19.00 OR Kmag1 <= 18.05) 
+        AND pN < 0.33
+        AND Kflag1 < 64
+    """  
+
+def vvv_adql_query(n, ra, dec, radius):
+    return f"""
+        SELECT TOP {n} iauname, RAJ2000, DEJ2000, Jmag3, e_Jmag3, Hmag3, e_Hmag3, Ksmag3, e_Ksmag3
+        FROM "II/348/vvv2"
+        WHERE 1=CONTAINS(
+            POINT('ICRS', RAJ2000, DEJ2000),
+            CIRCLE('ICRS', {ra}, {dec}, {radius})
+        )
+        AND (e_Jmag3 IS NOT NULL OR e_Hmag3 IS NOT NULL OR e_Ksmag3 IS NOT NULL)
+        AND (Jmag3 <= 19.5 OR Hmag3 <= 19.0 OR Ksmag3 <= 18.0) 
+        AND mClass <> 0
+    """    
 
 
 def generate_index(row):
@@ -168,4 +245,16 @@ def generate_index(row):
         return f"AllWISE_{row['AllWISE']}"
     else:
         return "UNKNOWN"
+    
+def _2mass_adql_query(n, ra, dec, radius):
+    return f"""
+        SELECT TOP {n} *
+        FROM "II/246/out"
+        WHERE 1=CONTAINS(
+        POINT('ICRS', RAJ2000, DEJ2000),
+        CIRCLE('ICRS', {ra}, {dec}, {radius})
+        )
+        AND (e_Jmag IS NOT NULL OR e_Hmag IS NOT NULL OR e_Kmag IS NOT NULL)
+        AND (Jmag <= 16.5 OR Hmag <= 15.8 OR Kmag <= 15.0)
+    """
 

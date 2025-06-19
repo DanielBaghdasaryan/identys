@@ -6,8 +6,19 @@ import json
 from os.path import join, basename
 from os import getcwd, makedirs
 from classifiers import classify_nir, classify_mir1, classify_mir2, classify_nmir, classify_w
-from utils import angular_distance, convert_to_degrees, get_adql_query, tap
-from helpers import convert_2mass_format, filter_glimpse, filter_ukidss, generate_index, get_idx_min, replace_from_2mass
+from utils import angular_distance, convert_to_degrees, get_adql_query, get_base_dataset
+from helpers import (
+    convert_2mass_format, 
+    filter_glimpse, 
+    filter_ukidss, 
+    filter_vvv, 
+    generate_index, 
+    get_idx_min, 
+    replace_from_2mass,
+    ugps_adql_query,
+    vvv_adql_query,
+    _2mass_adql_query
+)
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -20,34 +31,13 @@ def analyse_area(ra, dec, radius, base, out_dir, i):
     radius = radius / 60
 
     # Retrieve data from **UKIDSS GPS**
-    if base == 'UGPS':
-    #---------------------------------------------UKIDSS-------------------------------------------------
-        print('\nRetrieve data from UKIDSS...')
-        def adql_query(n):
-            return f"""
-            SELECT TOP {n} UGPS, RAICRS, DEICRS, Jmag, e_Jmag, Hmag, e_Hmag, Kmag1, e_Kmag1
-            FROM "II/316/gps6"
-            WHERE 1=CONTAINS(
-                POINT('ICRS', RAICRS, DEICRS),
-                CIRCLE('ICRS', {ra}, {dec}, {radius})
-            )
-            AND (e_Jmag IS NOT NULL OR e_Hmag IS NOT NULL OR e_Kmag1 IS NOT NULL)
-            AND (Jmag <= 19.77 OR Hmag <= 19.00 OR Kmag1 <= 18.05) 
-            AND pN < 0.33
-            AND Kflag1 < 64
-            """        
-
-        n = 10000
-        while True:
-            job = tap.launch_job(adql_query(n), maxrec=-1)
-            result = job.get_results()
-            if len(result) == n:
-                n *= 2
-                print(f'*** TRY {n}')
-            else:
-                break
-        # Convert result to a Pandas DataFrame
-        df = result.to_pandas()
+    if base == 'UGPS' or base == 'VVV':
+    #---------------------------------------------UKIDSS or VVV-------------------------------------------------
+        print(f'\nRetrieve data from {base}...')    
+        if base == 'UGPS':
+            df = get_base_dataset(ugps_adql_query, ra, dec, radius)
+        elif base == 'VVV':
+            df = get_base_dataset(vvv_adql_query, ra, dec, radius)
         
         print(f'Found rows: {len(df)}')
 
@@ -55,34 +45,17 @@ def analyse_area(ra, dec, radius, base, out_dir, i):
             base = '2MASS'
             print('\n', f'No data from {base}, get 2MASS as a base')
         else:
-            df = filter_ukidss(df)
-            df = convert_2mass_format(df)
+            if base == 'UGPS':
+                df = filter_ukidss(df)
+            elif base == 'VVV':
+                df = filter_vvv(df)
+            df = convert_2mass_format(df, base)
         
 
     #---------------------------------------------2MASS-------------------------------------------------
     print('\nRetrieve data from 2MASS...')
-    def adql_query(n):
-        return f"""
-            SELECT TOP {n} *
-            FROM "II/246/out"
-            WHERE 1=CONTAINS(
-            POINT('ICRS', RAJ2000, DEJ2000),
-            CIRCLE('ICRS', {ra}, {dec}, {radius})
-            )
-            AND (e_Jmag IS NOT NULL OR e_Hmag IS NOT NULL OR e_Kmag IS NOT NULL)
-            AND (Jmag <= 16.5 OR Hmag <= 15.8 OR Kmag <= 15.0)
-        """
-    n = 10000
-    while True:
-        job = tap.launch_job(adql_query(n), maxrec=-1)
-        result = job.get_results()
-        if len(result) == n:
-            n *= 2
-        else:
-            break
 
-    # Convert result to a Pandas DataFrame
-    df_2MASS = result.to_pandas()
+    df_2MASS = get_base_dataset(_2mass_adql_query, ra, dec, radius)
     print(f'Found rows: {len(df_2MASS)}')
 
     df_2MASS.loc[(df_2MASS['Jmag'] > 16.5) | df_2MASS['e_Jmag'].isna(), ['Jmag', 'e_Jmag']] = pd.NA
@@ -100,7 +73,7 @@ def analyse_area(ra, dec, radius, base, out_dir, i):
 
     # ----------------------------------Make replacements from 2MASS-------------------------------------
     if base != '2MASS':
-        df = replace_from_2mass(df, df_2MASS)
+        df = replace_from_2mass(df, df_2MASS, base)
     else:
         df = df_2MASS
         df = df[['_2MASS', 'ra', 'de', 'e_Jmag', 'e_Hmag', 'e_Kmag', 'J', 'H', 'K']]

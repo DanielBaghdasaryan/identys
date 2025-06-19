@@ -97,6 +97,19 @@ def get_adql_query(name, ra, dec, radius, prefix, start=10000, c=False, cols_to_
         result = result[cols_to_keep]
     return result
 
+def get_base_dataset(adql_query_constructor, ra, dec, radius):
+    n = 10000
+    while True:
+        job = tap.launch_job(adql_query_constructor(n, ra, dec, radius), maxrec=-1)
+        result = job.get_results()
+        if len(result) == n:
+            n *= 2
+            print(f'*** TRY {n}')
+        else:
+            break
+
+    return result.to_pandas()
+
 def angular_distance(ra1, dec1, ra2, dec2):
     """
     Calculate the angular distance between two celestial coordinates.
