@@ -152,7 +152,12 @@ def generate_index(row):
     Returns:
         str: Generated index string.
     """
-    base = 'UGPS' if 'UGPS' in row else '2MASS'
+    base = '2MASS'
+    if 'UGPS' in row:
+        base = 'UGPS'
+    # TODO: add VISTA
+        
+        
     if pd.notna(row[base]):
         return f"{base}_{row[base]}"
     elif 'GLIMPSE' in row and pd.notna(row['GLIMPSE']):

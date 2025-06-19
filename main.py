@@ -8,21 +8,20 @@ from os import getcwd, makedirs
 from classifiers import classify_nir, classify_mir1, classify_mir2, classify_nmir, classify_w
 from utils import angular_distance, convert_to_degrees, get_adql_query, tap
 from helpers import convert_2mass_format, filter_glimpse, filter_ukidss, generate_index, get_idx_min, replace_from_2mass
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
   
-def analyse_area(ra, dec, radius, use_gps, out_dir, i):
-
+def analyse_area(ra, dec, radius, base, out_dir, i):
     #---------INPUTS--------
     print(f'\nArea: {ra}, {dec}, {radius * 60}')
-    print(f'Use UKIDSS: {use_gps}')
+    print(f'Base Source: {base}')
     ra, dec = convert_to_degrees(ra, dec)
     radius = radius / 60
 
     # Retrieve data from **UKIDSS GPS**
-    base = '2MASS'
-    if use_gps:
+    if base == 'UGPS':
     #---------------------------------------------UKIDSS-------------------------------------------------
-        base = 'UKIDSS'
         print('\nRetrieve data from UKIDSS...')
         def adql_query(n):
             return f"""
@@ -54,8 +53,7 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
 
         if len(df) == 0:
             base = '2MASS'
-            print('\n', 'No data from UKIDSS, get 2MASS as a base')
-            use_gps = False
+            print('\n', f'No data from {base}, get 2MASS as a base')
         else:
             df = filter_ukidss(df)
             df = convert_2mass_format(df)
@@ -101,7 +99,7 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
 
 
     # ----------------------------------Make replacements from 2MASS-------------------------------------
-    if use_gps:
+    if base != '2MASS':
         df = replace_from_2mass(df, df_2MASS)
     else:
         df = df_2MASS
@@ -299,16 +297,6 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
         if pd.notna(value) and value not in df['AllWISE'].dropna().values:
             df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
 
-    cols_include = [
-        x for x in [
-        'UGPS' if use_gps else '_2MASS', 'ra', 'de', 'J', 'e_Jmag', 'H', 'e_Hmag', 'K', 'e_Kmag', 
-        'GLIMPSE', 'glimpse_ra', 'glimpse_de', '_3_6mag', 'e_3_6mag', '_4_5mag', 'e_4_5mag', '_5_8mag', 'e_5_8mag', '_8_0mag', 'e_8_0mag',  
-        'MIPSGAL', 'mipsgal_ra', 'mipsgal_de', '__24_', 'e__24_',  
-        'AllWISE', 'allwise_ra', 'allwise_de', 'W1mag', 'e_W1mag', 'W2mag', 'e_W2mag', 'W3mag', 'e_W3mag', 'W4mag', 'e_W4mag', 
-        'NIR_Class', 'MIR1_Class', 'MIR2_Class', 'NMIR_Class', 'W_Class'
-    ] if x in df]
-    df = df[cols_include]
-    
     df.rename(columns={
         '_3_6mag': '3_6mag',
         '_4_5mag': '4_5mag',
@@ -318,6 +306,16 @@ def analyse_area(ra, dec, radius, use_gps, out_dir, i):
         '_2MASS': '2MASS',
         'e__24_': 'e_24',
     }, inplace=True)
+    
+    cols_include = [
+        x for x in [
+        base, 'ra', 'de', 'J', 'e_Jmag', 'H', 'e_Hmag', 'K', 'e_Kmag', 
+        'GLIMPSE', 'glimpse_ra', 'glimpse_de', '_3_6mag', 'e_3_6mag', '_4_5mag', 'e_4_5mag', '_5_8mag', 'e_5_8mag', '_8_0mag', 'e_8_0mag',  
+        'MIPSGAL', 'mipsgal_ra', 'mipsgal_de', '__24_', 'e__24_',  
+        'AllWISE', 'allwise_ra', 'allwise_de', 'W1mag', 'e_W1mag', 'W2mag', 'e_W2mag', 'W3mag', 'e_W3mag', 'W4mag', 'e_W4mag', 
+        'NIR_Class', 'MIR1_Class', 'MIR2_Class', 'NMIR_Class', 'W_Class'
+    ] if x in df]
+    df = df[cols_include]
 
     class_columns = [x for x in ['NIR_Class', 'MIR1_Class', 'MIR2_Class', 'NMIR_Class', 'W_Class'] if x in df]
 
@@ -341,8 +339,8 @@ if __name__ == '__main__':
     else:
         out_dir = data['output_dir']
     makedirs(out_dir, exist_ok=True)
-    use_gps = data['use_gps']
+    base = data.get('base', '2MASS')
 
     for i, (ra, dec, radius) in enumerate(data['data']):
-        analyse_area(ra, dec, radius, use_gps, join(out_dir, basename(sys.argv[1]).replace('.json', '')), i)
+        analyse_area(ra, dec, radius, base, join(out_dir, basename(sys.argv[1]).replace('.json', '')), i)
 
