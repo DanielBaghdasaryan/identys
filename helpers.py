@@ -136,6 +136,7 @@ def filter_vvv(df):
         | df['e_Ksmag3'].isna()
         | df['Hmag3'].isna() 
         | df['e_Hmag3'].isna()
+        | df['Ksperrbits'] > 256
     ),
         ['Ksmag3', 'e_Ksmag3']
     ] = np.nan
@@ -146,6 +147,7 @@ def filter_vvv(df):
         | df['e_Jmag3'].isna() 
         | df['Hmag3'].isna() 
         | df['e_Hmag3'].isna()
+        | df['Jperrbits'] > 256
     ),
         ['Jmag3', 'e_Jmag3']
     ] = np.nan
@@ -156,13 +158,10 @@ def filter_vvv(df):
         | df['e_Hmag3'].isna()
         | df['Ksmag3'].isna() 
         | df['e_Ksmag3'].isna()
+        | df['Hperrbits'] > 256
     ), 
         ['Hmag3', 'e_Hmag3']
     ] = np.nan
-
-
-
-    # TODO: Jperrbits
 
     return df
 
@@ -206,7 +205,7 @@ def ugps_adql_query(n, ra, dec, radius):
 
 def vvv_adql_query(n, ra, dec, radius):
     return f"""
-        SELECT TOP {n} iauname, RAJ2000, DEJ2000, Jmag3, e_Jmag3, Hmag3, e_Hmag3, Ksmag3, e_Ksmag3
+        SELECT TOP {n} iauname, RAJ2000, DEJ2000, Jmag3, e_Jmag3, Hmag3, e_Hmag3, Ksmag3, e_Ksmag3, Jperrbits, Hperrbits, Ksperrbits, mClass
         FROM "II/348/vvv2"
         WHERE 1=CONTAINS(
             POINT('ICRS', RAJ2000, DEJ2000),
@@ -232,7 +231,8 @@ def generate_index(row):
     base = '2MASS'
     if 'UGPS' in row:
         base = 'UGPS'
-    # TODO: add VISTA
+    if 'VVV' in row:
+        base = 'VVV'
         
         
     if pd.notna(row[base]):
