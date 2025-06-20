@@ -12,6 +12,7 @@ from helpers import (
     filter_glimpse, 
     filter_ukidss, 
     filter_vvv, 
+    filter_allwise,
     generate_index, 
     get_idx_min, 
     replace_from_2mass,
@@ -47,8 +48,17 @@ def analyse_area(ra, dec, radius, base, out_dir, i):
         else:
             if base == 'UGPS':
                 df = filter_ukidss(df)
+                df.rename(columns={
+                    'RAICRS': 'ra',
+                    'DEICRS': 'de',
+                }, inplace=True)
             elif base == 'VVV':
                 df = filter_vvv(df)
+                df.rename(columns={
+                    'iauname': 'VVV',
+                    'RAJ2000': 'ra',
+                    'DEJ2000': 'de',
+                }, inplace=True)
             df = convert_2mass_format(df, base)
         
 
@@ -211,10 +221,43 @@ def analyse_area(ra, dec, radius, base, out_dir, i):
         'II/328/allwise', ra, dec, radius, 'allwise',
         cols_to_keep=[
             'AllWISE', 'allwise_ra', 'allwise_de', 
-            'W1mag', 'W2mag', 'W3mag', 'W4mag', 'e_W1mag', 'e_W2mag', 'e_W3mag', 'e_W4mag']
+            'W1mag', 'W2mag', 'W3mag', 'W4mag', 'e_W1mag', 'e_W2mag', 'e_W3mag', 'e_W4mag', 
+            'chi2W1', 'snr1', 'chi2W3', 'snr3', 'chi2W4', 'snr4']
     )
 
-    df_ALLWISE = df_ALLWISE[(df_ALLWISE['e_W1mag'] < 0.2) & (df_ALLWISE['e_W2mag'] < 0.2) & (df_ALLWISE['e_W3mag'] < 0.2) & (df_ALLWISE['e_W4mag'] < 0.2)]
+    # Version 2 ALLWISE filtering
+    df_ALLWISE = filter_allwise(df_ALLWISE) 
+    df_ALLWISE = df_ALLWISE[(
+        (df_ALLWISE['chi2W1'] < (df_ALLWISE['snr1'] - 3) / 7) &
+        (df_ALLWISE['snr3'] >= 5) &
+        ((df_ALLWISE['chi2W3'] < (df_ALLWISE['snr3'] - 8) / 8) | (0.45 < df_ALLWISE['chi2W3'] < 1.15)) &
+        (df_ALLWISE['chi2W4'] < (2 * df_ALLWISE['snr4'] - 20) / 10)
+    )]
+
+    df_ALLWISE = df_ALLWISE[~(
+        (df_ALLWISE['W2mag'] - df_ALLWISE['W3mag'] > 2.3) &
+        (df_ALLWISE['W1mag'] - df_ALLWISE['W2mag'] < 1.0) &
+        (df_ALLWISE['W1mag'] - df_ALLWISE['W2mag'] < 0.46 * (df_ALLWISE['W2mag'] - df_ALLWISE['W3mag']) - 0.78) &
+        (df_ALLWISE['W1mag'] > 13.0)
+    )]
+
+    df_ALLWISE = df_ALLWISE[~(
+        (df_ALLWISE['W1mag'] > 1.8 * (df_ALLWISE['W1mag'] - df_ALLWISE['W3mag']) + 4.1) &
+        ((df_ALLWISE['W1mag'] > 13.0) | (df_ALLWISE['W3mag'] > 11.0))
+    )]
+
+    df_ALLWISE = df_ALLWISE[~(
+        (df_ALLWISE['W1mag'] - df_ALLWISE['W2mag'] < 1.0) &
+        (df_ALLWISE['W2mag'] - df_ALLWISE['W3mag'] > 2.0) &
+        (df_ALLWISE['W3mag'] - df_ALLWISE['W4mag'] > 2.5)
+    )]
+
+    df_ALLWISE = df_ALLWISE[~(
+        (df_ALLWISE['W1mag'] - df_ALLWISE['W2mag'] < 0.6) &
+        (df_ALLWISE['W2mag'] - df_ALLWISE['W3mag'] < 1.0) &
+        (df_ALLWISE['W3mag'] - df_ALLWISE['W4mag'] < 1.0)
+    )]
+
     print(f'Filtering, rows left: {len(df_ALLWISE)}')
     print('Specify W class')
     df_ALLWISE['W_Class'] = df_ALLWISE.apply(classify_w, axis=1)
@@ -293,6 +336,8 @@ def analyse_area(ra, dec, radius, base, out_dir, i):
     class_columns = [x for x in ['NIR_Class', 'MIR1_Class', 'MIR2_Class', 'NMIR_Class', 'W_Class'] if x in df]
 
     df.index = df.apply(generate_index, axis=1)
+
+    df['dist'] = angular_distance(ra, dec, df['ra'], df['de'])
 
     # Separate the rows where any of the specified columns is not None
     df_not_none = df.dropna(subset=class_columns, how='all')

@@ -165,6 +165,23 @@ def filter_vvv(df):
 
     return df
 
+def filter_allwise(df):
+    df.replace([None, ''], np.nan, inplace=True)
+    df.loc[df['e_W1mag'].isna(),
+        ['W1mag', 'e_W1mag']
+    ] = np.nan
+    df.loc[df['e_W2mag'].isna(),
+        ['W2mag', 'e_W2mag']
+    ] = np.nan
+    df.loc[df['e_W3mag'].isna(),
+        ['W3mag', 'e_W3mag']
+    ] = np.nan
+    df.loc[df['e_W4mag'].isna(),
+        ['W4mag', 'e_W4mag']
+    ] = np.nan
+
+    return df
+
 def convert_2mass_format(df, base):
     print('Convert to 2MASS format')
     if base == 'UGPS':
@@ -172,20 +189,12 @@ def convert_2mass_format(df, base):
         df['H'] = 1.062 * (df['Hmag'] - df['Kmag1']) + df['Kmag1'] + 0.004 * (df['Jmag'] - df['Kmag1']) + 0.019
         df['K'] = df['Kmag1'] + 0.002
         df.loc[~df['Jmag'].isna(), 'K'] = df['K'] + 0.004 * (df['Jmag'] - df['Kmag1'])
-        df.rename(columns={
-            'RAICRS': 'ra',
-            'DEICRS': 'de',
-        }, inplace=True)
         del df['Jmag'], df['Hmag'], df['Kmag1']
 
     elif base == 'VVV':
         df['J'] = df['Jmag3'] + 0.07 * (df['Jmag3'] - df['Hmag3'])
         df['H'] = df['Hmag3'] + 0.01 * (df['Hmag3'] - df['Ksmag3'])
         df['K'] = df['Ksmag3'] + 0.01 * (df['Hmag3'] - df['Ksmag3'])
-        df.rename(columns={
-            'RAJ2000': 'ra',
-            'DEJ2000': 'de',
-        }, inplace=True)
         del df['Jmag3'], df['Hmag3'], df['Ksmag3']
     return df
 
