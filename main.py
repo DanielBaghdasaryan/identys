@@ -337,6 +337,8 @@ def analyse_area(ra, dec, radius, base, out_dir, i):
 
     df.index = df.apply(generate_index, axis=1)
 
+    df['dist'] = angular_distance(ra, dec, df['ra'], df['de'])
+
     # Separate the rows where any of the specified columns is not None
     df_not_none = df.dropna(subset=class_columns, how='all')
     # The remaining rows where all specified columns are None
