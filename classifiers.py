@@ -105,26 +105,19 @@ def classify_w(row):
     """
     diff_w1_w2 = row['W1mag'] - row['W2mag'] if pd.notna(row['W1mag']) and pd.notna(row['W2mag']) else np.nan
     diff_w2_w3 = row['W2mag'] - row['W3mag'] if pd.notna(row['W2mag']) and pd.notna(row['W3mag']) else np.nan
-    diff_w2_w4 = row['W2mag'] - row['W4mag'] if pd.notna(row['W2mag']) and pd.notna(row['W4mag']) else np.nan
 
-    sigma1 = (
-        (row['e_W1mag'] ** 2 + row['e_W2mag'] ** 2) ** 0.5
-        if pd.notna(row['e_W1mag']) and pd.notna(row['e_W2mag'])
-        else np.nan
-    )
-    sigma2 = (
-        (row['e_W2mag'] ** 2 + row['e_W3mag'] ** 2) ** 0.5
-        if pd.notna(row['e_W2mag']) and pd.notna(row['e_W3mag'])
-        else np.nan
-    )
-    condition = (
-        row['W1mag'] - row['W3mag'] + 1.7 * (row['W3mag'] - row['W4mag']) - 4.3
-        if pd.notna(row['W1mag']) and pd.notna(row['W3mag']) and pd.notna(row['W4mag'])
-        else np.nan
-    )
-
-    if diff_w1_w2 > 1 and diff_w2_w3 > 2 and diff_w2_w4 > 4:
+    if (
+        (2.0 < diff_w2_w3 < 4.5) and
+        (diff_w1_w2 > 0.42 * diff_w2_w3 + 2.2) and
+        (diff_w1_w2 > 0.46 * diff_w2_w3 - 0.9)
+    ):
         return "W_Class_I"
-    elif (diff_w1_w2 - sigma1 > 0.25) and (diff_w2_w3 - sigma2 > 1) and condition > 0:
+    elif (
+        (diff_w1_w2 > 0.25) and 
+        (diff_w1_w2 < 0.9 * diff_w2_w3 - 0.25) and
+        (diff_w1_w2 > -1.5 * diff_w2_w3 + 2.1) and
+        (diff_w1_w2 > 0.46 * diff_w2_w3 - 0.9) and
+        (diff_w2_w3 < 4.5)
+    ):
         return "W_Class_II"
     return pd.NA
