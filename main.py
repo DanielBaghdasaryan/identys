@@ -18,7 +18,8 @@ from helpers import (
     replace_from_2mass,
     ugps_adql_query,
     vvv_adql_query,
-    _2mass_adql_query
+    _2mass_adql_query,
+    fin_class
 )
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -226,37 +227,43 @@ def analyse_area(ra, dec, radius, base, out_dir, i):
     )
 
     # Version 2 ALLWISE filtering
-    df_ALLWISE = filter_allwise(df_ALLWISE) 
-    df_ALLWISE = df_ALLWISE[(
-        (df_ALLWISE['chi2W1'] < (df_ALLWISE['snr1'] - 3) / 7) &
-        (df_ALLWISE['snr3'] >= 5) &
-        ((df_ALLWISE['chi2W3'] < (df_ALLWISE['snr3'] - 8) / 8) | (0.45 < df_ALLWISE['chi2W3'] < 1.15)) &
-        (df_ALLWISE['chi2W4'] < (2 * df_ALLWISE['snr4'] - 20) / 10)
-    )]
+    if strict:
+        df_ALLWISE = filter_allwise(df_ALLWISE) 
+        df_ALLWISE = df_ALLWISE[(
+            (df_ALLWISE['chi2W1'] < (df_ALLWISE['snr1'] - 3) / 7) &
+            (df_ALLWISE['snr3'] >= 5) &
+            (
+                (df_ALLWISE['chi2W3'] < (df_ALLWISE['snr3'] - 8) / 8) | 
+                ((df_ALLWISE['chi2W3'] < 1.15) & (df_ALLWISE['chi2W3'] > 0.45))
+            ) &
+            (df_ALLWISE['chi2W4'] < (2 * df_ALLWISE['snr4'] - 20) / 10)
+        )]
 
-    df_ALLWISE = df_ALLWISE[~(
-        (df_ALLWISE['W2mag'] - df_ALLWISE['W3mag'] > 2.3) &
-        (df_ALLWISE['W1mag'] - df_ALLWISE['W2mag'] < 1.0) &
-        (df_ALLWISE['W1mag'] - df_ALLWISE['W2mag'] < 0.46 * (df_ALLWISE['W2mag'] - df_ALLWISE['W3mag']) - 0.78) &
-        (df_ALLWISE['W1mag'] > 13.0)
-    )]
+        df_ALLWISE = df_ALLWISE[~(
+            (df_ALLWISE['W2mag'] - df_ALLWISE['W3mag'] > 2.3) &
+            (df_ALLWISE['W1mag'] - df_ALLWISE['W2mag'] < 1.0) &
+            (df_ALLWISE['W1mag'] - df_ALLWISE['W2mag'] < 0.46 * (df_ALLWISE['W2mag'] - df_ALLWISE['W3mag']) - 0.78) &
+            (df_ALLWISE['W1mag'] > 13.0)
+        )]
 
-    df_ALLWISE = df_ALLWISE[~(
-        (df_ALLWISE['W1mag'] > 1.8 * (df_ALLWISE['W1mag'] - df_ALLWISE['W3mag']) + 4.1) &
-        ((df_ALLWISE['W1mag'] > 13.0) | (df_ALLWISE['W3mag'] > 11.0))
-    )]
+        df_ALLWISE = df_ALLWISE[~(
+            (df_ALLWISE['W1mag'] > 1.8 * (df_ALLWISE['W1mag'] - df_ALLWISE['W3mag']) + 4.1) &
+            ((df_ALLWISE['W1mag'] > 13.0) | (df_ALLWISE['W3mag'] > 11.0))
+        )]
 
-    df_ALLWISE = df_ALLWISE[~(
-        (df_ALLWISE['W1mag'] - df_ALLWISE['W2mag'] < 1.0) &
-        (df_ALLWISE['W2mag'] - df_ALLWISE['W3mag'] > 2.0) &
-        (df_ALLWISE['W3mag'] - df_ALLWISE['W4mag'] > 2.5)
-    )]
+        df_ALLWISE = df_ALLWISE[~(
+            (df_ALLWISE['W1mag'] - df_ALLWISE['W2mag'] < 1.0) &
+            (df_ALLWISE['W2mag'] - df_ALLWISE['W3mag'] > 2.0) &
+            (df_ALLWISE['W3mag'] - df_ALLWISE['W4mag'] > 2.5)
+        )]
 
-    df_ALLWISE = df_ALLWISE[~(
-        (df_ALLWISE['W1mag'] - df_ALLWISE['W2mag'] < 0.6) &
-        (df_ALLWISE['W2mag'] - df_ALLWISE['W3mag'] < 1.0) &
-        (df_ALLWISE['W3mag'] - df_ALLWISE['W4mag'] < 1.0)
-    )]
+        df_ALLWISE = df_ALLWISE[~(
+            (df_ALLWISE['W1mag'] - df_ALLWISE['W2mag'] < 0.6) &
+            (df_ALLWISE['W2mag'] - df_ALLWISE['W3mag'] < 1.0) &
+            (df_ALLWISE['W3mag'] - df_ALLWISE['W4mag'] < 1.0)
+        )]
+    else:
+        df_ALLWISE = df_ALLWISE[(df_ALLWISE['e_W1mag'] < 0.2) & (df_ALLWISE['e_W2mag'] < 0.2) & (df_ALLWISE['e_W3mag'] < 0.2) & (df_ALLWISE['e_W4mag'] < 0.2)]
 
     print(f'Filtering, rows left: {len(df_ALLWISE)}')
     print('Specify W class')
@@ -337,7 +344,8 @@ def analyse_area(ra, dec, radius, base, out_dir, i):
 
     df.index = df.apply(generate_index, axis=1)
 
-    df['dist'] = angular_distance(ra, dec, df['ra'], df['de'])
+    df['dist_arcmin'] = angular_distance(ra, dec, df['ra'], df['de']) * 60  # Convert to arcminutes
+    df['FinClass'] = df.apply(lambda row: fin_class(row), axis=1)
 
     # Separate the rows where any of the specified columns is not None
     df_not_none = df.dropna(subset=class_columns, how='all')
@@ -358,7 +366,8 @@ if __name__ == '__main__':
         out_dir = data['output_dir']
     makedirs(out_dir, exist_ok=True)
     base = data.get('base', '2MASS')
+    strict = data.get('strict', False)
 
     for i, (ra, dec, radius) in enumerate(data['data']):
-        analyse_area(ra, dec, radius, base, join(out_dir, basename(sys.argv[1]).replace('.json', '')), i)
+        analyse_area(ra, dec, radius, base, strict, join(out_dir, basename(sys.argv[1]).replace('.json', '')), i)
 

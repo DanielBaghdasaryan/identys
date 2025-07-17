@@ -83,7 +83,8 @@ The JSON input file should have the following structure:
 ```json
 {
     "output_dir": "",
-    "base": "UGPS",
+    "base": "UGPS", 
+    "strict": false,
     "data":[
         ["19 13 27.85", "+10 53 36.7", 1.9]
     ]
@@ -91,7 +92,8 @@ The JSON input file should have the following structure:
 ```
 
 - `output_dir`: Specifies the folder for saving output files. If left empty, results will be saved in the `<current dir>/output` folder.
-- `base`: [UGPS, # TODO] Determines whether to use UKIDSS GPS data. If set to `false`, 2MASS data will be used as the base. If set `true`, UKIDSS data will be used as a base and 2MASS data will only update UKIDSS data. However, it will automatically get 2MASS as a base if the data from UKIDSS is empty.
+- `base`: ["UGPS", "VVV"] Determines whether to use UKIDSS GPS or VISTA data. If omited or set `2MASS`, 2MASS data will be used as the base. If set, the provided DB be used as a base and 2MASS data will only update base data. However, it will automatically get 2MASS as a base if the data from `base` is empty.
+- `strict`: If `true`, strict conditions will be used for W_Class classification according to newer work (2014): https://iopscience.iop.org/article/10.1088/0004-637X/791/2/131. If `false`, conditions from older work (2012) will be used: https://iopscience.iop.org/article/10.1088/0004-637X/744/2/130
 - `data`: A list of areas in the format `[ra, dec, radius in arcmin]`. The process will run for each area and generate files named:
   - `<json name>_<area index>_class.csv`: Contains classified objects.
   - `<json name>_<area index>_no_class.csv`: Contains non-classified objects.

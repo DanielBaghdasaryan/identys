@@ -1,6 +1,7 @@
 {
     "output_dir": "",
     "base": "UGPS",
+    "strict": false,
     "data":[
         ["19 13 27.85", "+10 53 36.7", 1.9]
     ]

@@ -108,7 +108,7 @@ def classify_w(row):
 
     if (
         (2.0 < diff_w2_w3 < 4.5) and
-        (diff_w1_w2 > 0.42 * diff_w2_w3 + 2.2) and
+        (diff_w1_w2 > -0.42 * diff_w2_w3 + 2.2) and
         (diff_w1_w2 > 0.46 * diff_w2_w3 - 0.9)
     ):
         return "W_Class_I"

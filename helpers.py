@@ -92,9 +92,14 @@ def replace_from_2mass(df, df_2MASS, base):
     df['K'] = df.apply(lambda row: row['2K'] if pd.notna(row['2K']) else row['K'], axis=1)
     df['H'] = df.apply(lambda row: row['2H'] if pd.notna(row['2H']) else row['H'], axis=1)
     df['J'] = df.apply(lambda row: row['2J'] if pd.notna(row['2J']) else row['J'], axis=1)
-    df['e_Jmag'] = df.apply(lambda row: row['2e_Jmag'] if pd.notna(row['2e_Jmag']) else row['e_Jmag'], axis=1)
-    df['e_Hmag'] = df.apply(lambda row: row['2e_Hmag'] if pd.notna(row['2e_Hmag']) else row['e_Hmag'], axis=1)
-    df['e_Kmag'] = df.apply(lambda row: row['2e_Kmag'] if pd.notna(row['2e_Kmag']) else row['e_Kmag1'], axis=1)
+    if base == 'UGPS':
+        df['e_Jmag'] = df.apply(lambda row: row['2e_Jmag'] if pd.notna(row['2e_Jmag']) else row['e_Jmag'], axis=1)
+        df['e_Hmag'] = df.apply(lambda row: row['2e_Hmag'] if pd.notna(row['2e_Hmag']) else row['e_Hmag'], axis=1)
+        df['e_Kmag'] = df.apply(lambda row: row['2e_Kmag'] if pd.notna(row['2e_Kmag']) else row['e_Kmag1'], axis=1)
+    elif base == 'VVV':
+        df['e_Jmag3'] = df.apply(lambda row: row['2e_Jmag'] if pd.notna(row['2e_Jmag']) else row['e_Jmag3'], axis=1)
+        df['e_Hmag3'] = df.apply(lambda row: row['2e_Hmag'] if pd.notna(row['2e_Hmag']) else row['e_Hmag3'], axis=1)
+        df['e_Kmag3'] = df.apply(lambda row: row['2e_Kmag'] if pd.notna(row['2e_Kmag']) else row['e_Ksmag3'], axis=1)
 
     return df
 
@@ -167,16 +172,31 @@ def filter_vvv(df):
 
 def filter_allwise(df):
     df.replace([None, ''], np.nan, inplace=True)
-    df.loc[df['e_W1mag'].isna(),
+    df.loc[(
+        df['e_W1mag'].isna() | ~(df['chi2W1'] < (df['snr1'] - 3) / 7)
+    ),
         ['W1mag', 'e_W1mag']
     ] = np.nan
     df.loc[df['e_W2mag'].isna(),
         ['W2mag', 'e_W2mag']
     ] = np.nan
-    df.loc[df['e_W3mag'].isna(),
+    df.loc[(
+        df['e_W3mag'].isna() 
+        | ~(
+            (df['snr3'] >= 5) 
+            & (
+                (df['chi2W3'] < (df['snr3'] - 8) / 8) | 
+                ((df['chi2W3'] < 1.15) & (df['chi2W3'] > 0.45))
+            )
+        )
+    ),
         ['W3mag', 'e_W3mag']
     ] = np.nan
-    df.loc[df['e_W4mag'].isna(),
+    
+    df.loc[(
+        df['e_W4mag'].isna()
+        | ~(df['chi2W4'] < (2 * df['snr4'] - 20) / 10)
+    ),
         ['W4mag', 'e_W4mag']
     ] = np.nan
 
@@ -267,3 +287,21 @@ def _2mass_adql_query(n, ra, dec, radius):
         AND (Jmag <= 16.5 OR Hmag <= 15.8 OR Kmag <= 15.0)
     """
 
+def fin_class(row):
+    class_cols = ["NIR_Class", "MIR1_Class",	"MIR2_Class",	"NMIR_Class",	"W_Class"]
+    
+    _1 = 0
+    _2 = 0
+    for cls in class_cols:
+        if pd.notna(row[cls]):
+            if row[cls].endswith("II"):
+                _2 += 2 if cls == "W_Class" else 1
+            else:
+                _1 += 2 if cls == "W_Class" else 1
+    
+    if _1 == _2:
+        return "Class_I_II"
+    elif _1 > _2:
+        return "Class_I"
+    elif _2 > _1:
+        return "Class_II"
