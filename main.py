@@ -25,7 +25,7 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
   
-def analyse_area(ra, dec, radius, base, out_dir, i):
+def analyse_area(ra, dec, radius, base, strict, out_dir, i):
     #---------INPUTS--------
     print(f'\nArea: {ra}, {dec}, {radius * 60}')
     print(f'Base Source: {base}')

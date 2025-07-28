@@ -73,7 +73,7 @@ pip install -r requirements.txt
 To execute the script with an example input file:
 
 ```bash
-python main.py example.json
+python main.py example_UGPS.json
 ```
 
 ### JSON Input Structure
