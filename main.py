@@ -203,6 +203,8 @@ def analyse_area(ra, dec, radius, base, strict, out_dir, i):
     if len(df_GLIMPSE) > 0 and len(df_MIPSGAL) > 0:
         print('Specify MIR2 class')
         df['MIR2_Class'] = df.apply(classify_mir2, axis=1)
+    else:
+        df['MIR2_Class'] = pd.NA
      
 
     print('Concat the rest from GLIMPSE and MIPSGAL')
@@ -344,15 +346,36 @@ def analyse_area(ra, dec, radius, base, strict, out_dir, i):
 
     df.index = df.apply(generate_index, axis=1)
 
+    # if df['ra'] is None or np.nan etc it should take glimpse_ra and glimpse_de, then mipsgal_ra and mipsgal_de, then allwise_ra and allwise_de
+    df['ra'] = df.apply(lambda row: row['ra'] if pd.notna(row['ra']) else (
+        row['glimpse_ra'] if 'glimpse_ra' in row and pd.notna(row['glimpse_ra']) else (
+            row['mipsgal_ra'] if 'mipsgal_ra' in row and pd.notna(row['mipsgal_ra']) else (
+                row['allwise_ra'] if 'allwise_ra' in row and pd.notna(row['allwise_ra']) else np.nan
+            )
+        )
+    ), axis=1)
+    df['de'] = df.apply(lambda row: row['de'] if pd.notna(row['de']) else (
+        row['glimpse_de'] if 'glimpse_de' in row and pd.notna(row['glimpse_de']) else (
+            row['mipsgal_de'] if 'mipsgal_de' in row and pd.notna(row['mipsgal_de']) else (
+                row['allwise_de'] if 'allwise_de' in row and pd.notna(row['allwise_de']) else np.nan
+            )
+        )
+    ), axis=1)
+    
     df['dist_arcmin'] = angular_distance(ra, dec, df['ra'], df['de']) * 60  # Convert to arcminutes
-    df['FinClass'] = df.apply(lambda row: fin_class(row), axis=1)
 
     # Separate the rows where any of the specified columns is not None
-    df_not_none = df.dropna(subset=class_columns, how='all')
+    df_not_none = df.dropna(subset=class_columns, how='all').copy()
+
+    # Assign FinClass only to df_not_none using .loc
+    df_not_none.loc[:, 'FinClass'] = (
+        df_not_none['W_Class'].notna() | (df_not_none[class_columns].notna().sum(axis=1) >= 2)
+    )
+
     # The remaining rows where all specified columns are None
     df_others = df.loc[df.index.difference(df_not_none.index)]
-    df_others.drop(columns=class_columns, inplace=True)
-    
+    df_others = df_others.drop(columns=class_columns)
+
     df_not_none.to_csv(out_dir + f'_{i}_class.csv')
     df_others.to_csv(out_dir + f'_{i}_no_class.csv')
 
