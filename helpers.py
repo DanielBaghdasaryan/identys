@@ -288,7 +288,7 @@ def _2mass_adql_query(n, ra, dec, radius):
     """
 
 def fin_class(row):
-    class_cols = ["NIR_Class", "MIR1_Class",	"MIR2_Class",	"NMIR_Class",	"W_Class"]
+    class_cols = ["NIR_Class", "MIR1_Class", "MIR2_Class", "NMIR_Class", "W_Class"]
     
     _1 = 0
     _2 = 0
