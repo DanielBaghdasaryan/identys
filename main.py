@@ -368,9 +368,7 @@ def analyse_area(ra, dec, radius, base, strict, out_dir, i):
     df_not_none = df.dropna(subset=class_columns, how='all').copy()
 
     # Assign FinClass only to df_not_none using .loc
-    df_not_none.loc[:, 'FinClass'] = (
-        df_not_none['W_Class'].notna() | (df_not_none[class_columns].notna().sum(axis=1) >= 2)
-    )
+    df_not_none.loc[:, 'FinClass'] = df_not_none.apply(fin_class, axis=1)
 
     # The remaining rows where all specified columns are None
     df_others = df.loc[df.index.difference(df_not_none.index)]
@@ -388,7 +386,9 @@ if __name__ == '__main__':
     else:
         out_dir = data['output_dir']
     makedirs(out_dir, exist_ok=True)
-    base = data.get('base', '2MASS')
+    base = data.get('base', '2MASS') or '2MASS'
+    if base not in ['2MASS', 'UGPS', 'VVV']:
+        raise ValueError(f'Base dataset must be one of: 2MASS, UGPS, VVV, or omited. Provided: {base}')
     strict = data.get('strict', False)
 
     for i, (ra, dec, radius) in enumerate(data['data']):
