@@ -335,8 +335,8 @@ def analyse_area(ra, dec, radius, base, strict, out_dir, i):
     cols_include = [
         x for x in [
         base, 'ra', 'de', 'J', 'e_Jmag', 'H', 'e_Hmag', 'K', 'e_Kmag', 
-        'GLIMPSE', 'glimpse_ra', 'glimpse_de', '_3_6mag', 'e_3_6mag', '_4_5mag', 'e_4_5mag', '_5_8mag', 'e_5_8mag', '_8_0mag', 'e_8_0mag',  
-        'MIPSGAL', 'mipsgal_ra', 'mipsgal_de', '__24_', 'e__24_',  
+        'GLIMPSE', 'glimpse_ra', 'glimpse_de', '3_6mag', 'e_3_6mag', '4_5mag', 'e_4_5mag', '5_8mag', 'e_5_8mag', '8_0mag', 'e_8_0mag',  
+        'MIPSGAL', 'mipsgal_ra', 'mipsgal_de', '_24', 'e_24',  
         'AllWISE', 'allwise_ra', 'allwise_de', 'W1mag', 'e_W1mag', 'W2mag', 'e_W2mag', 'W3mag', 'e_W3mag', 'W4mag', 'e_W4mag', 
         'NIR_Class', 'MIR1_Class', 'MIR2_Class', 'NMIR_Class', 'W_Class'
     ] if x in df]
