@@ -97,9 +97,10 @@ def replace_from_2mass(df, df_2MASS, base):
         df['e_Hmag'] = df.apply(lambda row: row['2e_Hmag'] if pd.notna(row['2e_Hmag']) else row['e_Hmag'], axis=1)
         df['e_Kmag'] = df.apply(lambda row: row['2e_Kmag'] if pd.notna(row['2e_Kmag']) else row['e_Kmag1'], axis=1)
     elif base == 'VVV':
-        df['e_Jmag3'] = df.apply(lambda row: row['2e_Jmag'] if pd.notna(row['2e_Jmag']) else row['e_Jmag3'], axis=1)
-        df['e_Hmag3'] = df.apply(lambda row: row['2e_Hmag'] if pd.notna(row['2e_Hmag']) else row['e_Hmag3'], axis=1)
-        df['e_Kmag3'] = df.apply(lambda row: row['2e_Kmag'] if pd.notna(row['2e_Kmag']) else row['e_Ksmag3'], axis=1)
+        df['e_Jmag'] = df.apply(lambda row: row['2e_Jmag'] if pd.notna(row['2e_Jmag']) else row['e_Jmag3'], axis=1)
+        df['e_Hmag'] = df.apply(lambda row: row['2e_Hmag'] if pd.notna(row['2e_Hmag']) else row['e_Hmag3'], axis=1)
+        df['e_Kmag'] = df.apply(lambda row: row['2e_Kmag'] if pd.notna(row['2e_Kmag']) else row['e_Ksmag3'], axis=1)
+        del df['e_Ksmag3'], df['e_Hmag3'], df['e_Jmag3']
 
     return df
 
