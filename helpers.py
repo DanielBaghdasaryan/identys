@@ -294,6 +294,8 @@ def fin_class(row):
     _1 = 0
     _2 = 0
     for cls in class_cols:
+        if cls not in row:
+            continue
         if pd.notna(row[cls]):
             if row[cls].endswith("II"):
                 _2 += 2 if cls == "W_Class" else 1
