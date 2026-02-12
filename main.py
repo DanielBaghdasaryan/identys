@@ -6,7 +6,7 @@ import json
 from os.path import join, basename
 from os import getcwd, makedirs
 from classifiers import classify_nir, classify_mir1, classify_mir2, classify_nmir, classify_w
-from utils import angular_distance, convert_to_degrees, get_adql_query, get_base_dataset
+from utils import angular_distance, convert_to_degrees, get_adql_query, get_base_dataset, hms_to_degrees, dms_to_degrees
 from helpers import (
     convert_2mass_format, 
     filter_glimpse, 
@@ -24,8 +24,21 @@ from helpers import (
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
+GLIMPSE_COLUMNS = [
+    'GLIMPSE', 'glimpse_ra', 'glimpse_de', 
+    '_3_6mag', 'e_3_6mag', '_4_5mag', 'e_4_5mag', '_5_8mag', 'e_5_8mag', '_8_0mag', 'e_8_0mag',
+]
+MIPSGAL_COLUMNS = [
+    'MIPSGAL', 'mipsgal_ra', 'mipsgal_de', '__24_', 'e__24_',
+]
+ALLWISE_COLUMNS = [
+    'AllWISE', 'allwise_ra', 'allwise_de', 
+    'W1mag', 'W2mag', 'W3mag', 'W4mag', 'e_W1mag', 'e_W2mag', 'e_W3mag', 'e_W4mag', 
+    'chi2W1', 'snr1', 'chi2W3', 'snr3', 'chi2W4', 'snr4',
+]
+
   
-def analyse_area(ra, dec, radius, base, strict, out_dir, i):
+def analyse_area(ra, dec, radius, base, strict, out_dir, data_idx, custom_data=None):
     #---------INPUTS--------
     print(f'\nArea: {ra}, {dec}, {radius * 60}')
     print(f'Base Source: {base}')
@@ -102,14 +115,27 @@ def analyse_area(ra, dec, radius, base, strict, out_dir, i):
 
 
     # ------------------------------------------GLIMPSE-----------------------------------------
-    df_GLIMPSE = get_adql_query(
-        'II/293/glimpse', ra, dec, radius, 'glimpse', c=True,
-        cols_to_keep=[
-            'GLIMPSE', 'glimpse_ra', 'glimpse_de', 
-            '_3_6mag', 'e_3_6mag', '_4_5mag', 'e_4_5mag', '_5_8mag', 'e_5_8mag', '_8_0mag', 'e_8_0mag',
-            'F_3_6_', 'e_F_3_6_', 'F_4_5_', 'e_F_4_5_', 'F_5_8_', 'e_F_5_8_', 'F_8_0_', 'e_F_8_0_'
-        ]
-    )
+    if 'GLIMPSE' in custom_data:
+        print('Read GLIMPSE from custom data')
+        df_GLIMPSE = pd.read_excel(custom_data['GLIMPSE']['source'])
+        for k, v in custom_data['GLIMPSE']['colmap'].items():
+            if k == 'glimpse_ra' and isinstance(v, list):
+                df_GLIMPSE[k] = (
+                    df_GLIMPSE[v[0]].astype(str) + ' ' + 
+                    df_GLIMPSE[v[1]].astype(str) + ' ' + 
+                    df_GLIMPSE[v[2]].astype(str)).apply(hms_to_degrees)
+            elif k == 'glimpse_de' and isinstance(v, list):
+                df_GLIMPSE[k] = (
+                    df_GLIMPSE[v[0]].astype(str) + ' ' + 
+                    df_GLIMPSE[v[1]].astype(str) + ' ' + 
+                    df_GLIMPSE[v[2]].astype(str)).apply(dms_to_degrees)
+            else:
+                df_GLIMPSE[k] = df_GLIMPSE[v]
+    else:
+        df_GLIMPSE = get_adql_query(
+            'II/293/glimpse', ra, dec, radius, 'glimpse', c=True,
+            cols_to_keep=GLIMPSE_COLUMNS
+        )
     print(f'Found rows: {len(df_GLIMPSE)}')
 
     df_GLIMPSE = filter_glimpse(df_GLIMPSE)
@@ -122,7 +148,7 @@ def analyse_area(ra, dec, radius, base, strict, out_dir, i):
     # ------------------------------------------MIPSGAL-----------------------------------------
     df_MIPSGAL = get_adql_query(
         'J/AJ/149/64/catalog', ra, dec, radius, 'mipsgal',
-        cols_to_keep=['MIPSGAL', 'mipsgal_ra', 'mipsgal_de', '__24_', 'e__24_' ]
+        cols_to_keep=MIPSGAL_COLUMNS
     )
 
     if len(df_GLIMPSE) > 0 and len(df_MIPSGAL) > 0:
@@ -222,10 +248,7 @@ def analyse_area(ra, dec, radius, base, strict, out_dir, i):
     # -------------------------------------------------ALLWISE--------------------------------------
     df_ALLWISE = get_adql_query(
         'II/328/allwise', ra, dec, radius, 'allwise',
-        cols_to_keep=[
-            'AllWISE', 'allwise_ra', 'allwise_de', 
-            'W1mag', 'W2mag', 'W3mag', 'W4mag', 'e_W1mag', 'e_W2mag', 'e_W3mag', 'e_W4mag', 
-            'chi2W1', 'snr1', 'chi2W3', 'snr3', 'chi2W4', 'snr4']
+        cols_to_keep=ALLWISE_COLUMNS
     )
 
     # Version 2 ALLWISE filtering
@@ -374,8 +397,8 @@ def analyse_area(ra, dec, radius, base, strict, out_dir, i):
     df_others = df.loc[df.index.difference(df_not_none.index)]
     df_others = df_others.drop(columns=class_columns)
 
-    df_not_none.to_csv(out_dir + f'_{i}_class.csv')
-    df_others.to_csv(out_dir + f'_{i}_no_class.csv')
+    df_not_none.to_csv(out_dir + f'_{data_idx}_class.csv')
+    df_others.to_csv(out_dir + f'_{data_idx}_no_class.csv')
 
 if __name__ == '__main__':
     with open(sys.argv[1], 'r') as f:
@@ -385,6 +408,8 @@ if __name__ == '__main__':
         out_dir = join(getcwd(), 'output')
     else:
         out_dir = data['output_dir']
+        
+    custom_data = data.get('custom_data', None)
     makedirs(out_dir, exist_ok=True)
     base = data.get('base', '2MASS') or '2MASS'
     if base not in ['2MASS', 'UGPS', 'VVV']:
@@ -392,5 +417,14 @@ if __name__ == '__main__':
     strict = data.get('strict', False)
 
     for i, (ra, dec, radius) in enumerate(data['data']):
-        analyse_area(ra, dec, radius, base, strict, join(out_dir, basename(sys.argv[1]).replace('.json', '')), i)
+        analyse_area(
+            ra=ra, 
+            dec=dec, 
+            radius=radius, 
+            base=base, 
+            strict=strict, 
+            out_dir=join(out_dir, basename(sys.argv[1]).replace('.json', '')), 
+            data_idx=i,
+            custom_data=custom_data
+        )
 

@@ -1,0 +1,18 @@
+{
+    "output_dir": "",
+    "base": "UGPS",
+    "strict": false,
+    "data":[
+        ["8 56 28.1", "-43 5 55.6", 10]
+    ],
+    "custom_data": {
+        "GLIMPSE": {
+            "source": "/Users/daniel.baghdasaryan/Downloads/RCW34_.xlsx",
+            "colmap": {
+                "GLIMPSE": "Star",
+                "glimpse_ra": ["rah", "ram", "ras"],
+                "glimpse_de": ["ded", "dem", "des"]
+            }
+        }
+    }
+}
