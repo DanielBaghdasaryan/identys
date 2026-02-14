@@ -57,8 +57,8 @@ def analyse_area(ra, dec, radius, base, strict, out_dir, data_idx, custom_data=N
         print(f'Found rows: {len(df)}')
 
         if len(df) == 0:
-            base = '2MASS'
             print('\n', f'No data from {base}, get 2MASS as a base')
+            base = '2MASS'
         else:
             if base == 'UGPS':
                 df = filter_ukidss(df)
@@ -131,6 +131,7 @@ def analyse_area(ra, dec, radius, base, strict, out_dir, data_idx, custom_data=N
                     df_GLIMPSE[v[2]].astype(str)).apply(dms_to_degrees)
             else:
                 df_GLIMPSE[k] = df_GLIMPSE[v]
+        df_GLIMPSE = df_GLIMPSE[[col for col in GLIMPSE_COLUMNS if col in df_GLIMPSE.columns]]  
     else:
         df_GLIMPSE = get_adql_query(
             'II/293/glimpse', ra, dec, radius, 'glimpse', c=True,
